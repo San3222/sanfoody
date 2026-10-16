@@ -1,0 +1,235 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Manrope", "Segoe UI", sans-serif;
+  --font-body: "DM Sans", "Segoe UI", sans-serif;
+
+  --color-tomato: #E63946;
+  --color-deep-red: #B91C1C;
+  --color-orange: #F97316;
+  --color-gold: #F59E0B;
+
+  --color-cream: #FFF8F0;
+  --color-beige: #FEF3E2;
+
+  --color-charcoal: #1F2937;
+  --color-warm-gray: #6B7280;
+
+  --color-fresh-green: #16A34A;
+
+  --shadow-warm: 0 20px 60px -15px rgba(185, 28, 28, 0.25);
+  --shadow-soft: 0 8px 30px -8px rgba(31, 41, 55, 0.12);
+}
+
+@layer base {
+  * {
+    @apply border-charcoal/10;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-cream text-charcoal font-body antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Hide scrollbar for horizontally-scrolling rows (categories, filters) */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Custom scrollbar for a premium feel */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-cream);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-orange);
+  border-radius: 999px;
+}
+
+
+/* Dark mode variables */
+:root {
+  --bg-cream: #FDF8F0;
+  --bg-charcoal: #1A1A1A;
+  --text-charcoal: #1A1A1A;
+  --text-warm-gray: #6B5B4F;
+  --border-charcoal: rgba(26, 26, 26, 0.1);
+  --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.06);
+  --shadow-warm: 0 12px 40px rgba(0, 0, 0, 0.1);
+}
+
+.dark {
+  --bg-cream: #121212;
+  --bg-charcoal: #FDF8F0;
+  --text-charcoal: #F5F0EB;
+  --text-warm-gray: #A8988C;
+  --border-charcoal: rgba(245, 240, 235, 0.1);
+  --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.3);
+  --shadow-warm: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.dark .bg-cream {
+  background-color: #121212;
+}
+
+.dark .bg-white {
+  background-color: #1E1E1E;
+}
+
+.dark .text-charcoal {
+  color: #F5F0EB;
+}
+
+.dark .text-warm-gray {
+  color: #A8988C;
+}
+
+.dark .border-charcoal\\/10 {
+  border-color: rgba(245, 240, 235, 0.1);
+}
+
+.dark .border-charcoal\\/5 {
+  border-color: rgba(245, 240, 235, 0.05);
+}
+
+.dark .shadow-soft {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.dark .shadow-warm {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.dark .bg-charcoal\\/8 {
+  background-color: rgba(245, 240, 235, 0.08);
+}
+
+.dark .bg-charcoal\\/5 {
+  background-color: rgba(245, 240, 235, 0.05);
+}
+
+.dark .bg-beige {
+  background-color: #2A2A2A;
+}
+
+.dark .bg-beige\\/60 {
+  background-color: rgba(42, 42, 42, 0.6);
+}
+
+.dark .bg-white\\/90 {
+  background-color: rgba(30, 30, 30, 0.9);
+}
+
+.dark .bg-cream\\/80 {
+  background-color: rgba(18, 18, 18, 0.8);
+}
+
+.dark .bg-cream\\/95 {
+  background-color: rgba(18, 18, 18, 0.95);
+}
+
+.dark .text-charcoal\\/70 {
+  color: rgba(245, 240, 235, 0.7);
+}
+
+.dark .text-charcoal\\/80 {
+  color: rgba(245, 240, 235, 0.8);
+}
+
+.dark .text-charcoal\\/90 {
+  color: rgba(245, 240, 235, 0.9);
+}
+
+.dark .text-charcoal\\/40 {
+  color: rgba(245, 240, 235, 0.4);
+}
+
+.dark .text-charcoal\\/20 {
+  color: rgba(245, 240, 235, 0.2);
+}
+
+.dark .text-charcoal\\/30 {
+  color: rgba(245, 240, 235, 0.3);
+}
+
+.dark .bg-linear-to-b {
+  --tw-gradient-from: #121212;
+  --tw-gradient-to: rgba(18, 18, 18, 0);
+}
+
+.dark .bg-linear-to-br {
+  --tw-gradient-from: #121212;
+  --tw-gradient-to: rgba(18, 18, 18, 0);
+}
+
+.dark .bg-linear-to-r {
+  --tw-gradient-from: #121212;
+  --tw-gradient-to: rgba(18, 18, 18, 0);
+}
+
+.dark .border-charcoal\\/15 {
+  border-color: rgba(245, 240, 235, 0.15);
+}
+
+.dark .bg-beige\\/30 {
+  background-color: rgba(42, 42, 42, 0.3);
+}
+
+.dark .bg-beige\\/50 {
+  background-color: rgba(42, 42, 42, 0.5);
+}
+
+.dark .bg-white\\/40 {
+  background-color: rgba(30, 30, 30, 0.4);
+}
+
+.dark .bg-charcoal {
+  background-color: #F5F0EB;
+}
+
+.dark .text-cream {
+  color: #121212;
+}
+
+.dark .bg-charcoal\\/50 {
+  background-color: rgba(245, 240, 235, 0.5);
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #1E1E1E;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #3A3A3A;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #4A4A4A;
+}

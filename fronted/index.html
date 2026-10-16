@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="SanFoody — premium food, delivered fresh. Discover cuisines, order in seconds, taste the difference." />
+  <meta name="theme-color" content="#FFF8F0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Permissions-Policy"
+    content="accelerometer=(self), gyroscope=(self), camera=(self), microphone=(self)" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <title>SanFoody — Good Food. Good Mood.</title>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+  <script>
+    // 🔇 Filter out Chrome extension errors (they clutter console)
+    if (typeof window !== 'undefined') {
+      const originalError = console.error
+      console.error = (...args) => {
+        const msg = args[0]?.toString() || ''
+        // Ignore known extension errors
+        if (
+          msg.includes('A listener indicated an asynchronous response') ||
+          msg.includes('message channel closed') ||
+          msg.includes('startTime')
+        ) {
+          return  // Silently ignore
+        }
+        originalError(...args)
+      }
+    }
+  </script>
+</body>
+
+</html>

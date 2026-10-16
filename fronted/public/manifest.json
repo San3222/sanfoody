@@ -1,0 +1,101 @@
+{
+  "name": "SanFoody - Premium Food Delivery",
+  "short_name": "SanFoody",
+  "description": "Discover delicious food from the best restaurants in your city. Order now and get it delivered fresh.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FDF8F0",
+  "theme_color": "#E63946",
+  "categories": ["food", "lifestyle", "shopping"],
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/home.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpg",
+      "form_factor": "wide",
+      "label": "Discover delicious food"
+    },
+    {
+      "src": "/screenshots/mobile-home.jpg",
+      "sizes": "750x1334",
+      "type": "image/jpg",
+      "form_factor": "narrow",
+      "label": "Order your favorites"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Explore Food",
+      "short_name": "Explore",
+      "description": "Find the best restaurants near you",
+      "url": "/explore",
+      "icons": [{ "src": "/icons/shortcut-explore.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "View Offers",
+      "short_name": "Offers",
+      "description": "Check out latest deals",
+      "url": "/offers",
+      "icons": [{ "src": "/icons/shortcut-offers.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Your Favorites",
+      "short_name": "Favorites",
+      "description": "Your saved restaurants and dishes",
+      "url": "/favorites",
+      "icons": [{ "src": "/icons/shortcut-favorites.png", "sizes": "96x96" }]
+    }
+  ],
+  "prefer_related_applications": false
+}
