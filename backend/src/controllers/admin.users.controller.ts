@@ -155,9 +155,13 @@ export const verifyUser = asyncHandler(
         if (user.role === "restaurant" && user.restaurantDetails) {
             user.restaurantDetails.verificationStatus = "verified";
             user.restaurantDetails.verifiedAt = new Date();
+            // 🔥 Ye line add karein
+            user.markModified('restaurantDetails');
         } else if (user.role === "delivery" && user.deliveryDetails) {
             user.deliveryDetails.verificationStatus = "verified";
             user.deliveryDetails.verifiedAt = new Date();
+            // 🔥 Ye line add karein
+            user.markModified('deliveryDetails');
         } else {
             throw new ApiError(400, "User is not a restaurant or delivery partner");
         }

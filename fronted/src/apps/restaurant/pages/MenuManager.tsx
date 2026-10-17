@@ -1,5 +1,5 @@
 // src/apps/restaurant/pages/MenuManager.tsx
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import {
   Plus,
   Pencil,
@@ -8,6 +8,10 @@ import {
   UtensilsCrossed,
   RefreshCw,
   ImageIcon,
+  UploadCloud,
+  Link as LinkIcon,
+  X,
+  IndianRupee,
 } from 'lucide-react'
 import { Card } from '@/components/shared/Card'
 import { Badge } from '@/components/shared/Badge'
@@ -80,6 +84,10 @@ export function RestaurantMenuManager() {
   const [formData, setFormData] = useState<MenuFormState>(EMPTY_FORM)
   const [deleteConfirm, setDeleteConfirm] = useState<FoodItem | null>(null)
 
+  // 🔥 Image Upload State
+  const [imageMode, setImageMode] = useState<'url' | 'upload'>('url')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   // Fetch restaurant profile to get restaurantId
   const { data: profile, isLoading: profileLoading } = useRestaurantProfile()
   const restaurantId = profile?._id
@@ -115,6 +123,7 @@ export function RestaurantMenuManager() {
   const handleAddItem = () => {
     setEditingItem(null)
     setFormData(EMPTY_FORM)
+    setImageMode('url')
     setIsModalOpen(true)
   }
 
@@ -127,30 +136,37 @@ export function RestaurantMenuManager() {
       price: String(item.price),
       category: item.course || 'Main Course',
       isVeg: item.isVeg,
-      isAvailable: true,
+      isAvailable: item.isAvailable ?? true,
     })
+    setImageMode(item.image.startsWith('data:image') ? 'upload' : 'url')
     setIsModalOpen(true)
   }
 
+  // 🔥 File Upload Handler (Base64 Conversion) - 10MB Limit
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // 🔥 10MB Validation
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('error', 'Image size should be less than 10MB')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setFormData({ ...formData, image: reader.result as string })
+    }
+    reader.readAsDataURL(file)
+  }
+
   const handleSubmit = () => {
-    // Validation
-    if (!formData.name.trim()) {
-      showToast('error', 'Item name is required')
-      return
-    }
-    if (!formData.description.trim()) {
-      showToast('error', 'Description is required')
-      return
-    }
-    if (!formData.image.trim()) {
-      showToast('error', 'Image URL is required')
-      return
-    }
+    if (!formData.name.trim()) return showToast('error', 'Item name is required')
+    if (!formData.description.trim()) return showToast('error', 'Description is required')
+    if (!formData.image.trim()) return showToast('error', 'Image is required')
+
     const price = parseInt(formData.price, 10)
-    if (!price || price <= 0) {
-      showToast('error', 'Valid price is required')
-      return
-    }
+    if (!price || price <= 0) return showToast('error', 'Valid price is required')
 
     const payload = {
       name: formData.name.trim(),
@@ -163,26 +179,21 @@ export function RestaurantMenuManager() {
     }
 
     if (editingItem) {
-      // Update
       updateMutation.mutate(
         { id: editingItem.id || editingItem._id, data: payload },
         {
           onSuccess: () => {
             showToast('success', 'Menu item updated')
-            setIsModalOpen(false)
-            setEditingItem(null)
-            setFormData(EMPTY_FORM)
+            closeModal()
           },
           onError: (err: any) => showToast('error', err.message || 'Update failed'),
         }
       )
     } else {
-      // Create
       createMutation.mutate(payload, {
         onSuccess: () => {
           showToast('success', 'Menu item created')
-          setIsModalOpen(false)
-          setFormData(EMPTY_FORM)
+          closeModal()
         },
         onError: (err: any) => showToast('error', err.message || 'Create failed'),
       })
@@ -207,20 +218,21 @@ export function RestaurantMenuManager() {
     })
   }
 
+  const closeModal = () => {
+    setIsModalOpen(false)
+    setEditingItem(null)
+    setFormData(EMPTY_FORM)
+  }
+
   // ============================================
   // Loading state
   // ============================================
 
   if (profileLoading || menuLoading) {
     return (
-      <div>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-bold text-charcoal">Menu Manager</h1>
-            <p className="mt-1 text-sm text-warm-gray">Loading...</p>
-          </div>
-        </div>
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="animate-pulse">
+        <div className="h-10 w-48 rounded-lg bg-charcoal/5" />
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <FoodCardSkeleton key={i} />
           ))}
@@ -230,62 +242,71 @@ export function RestaurantMenuManager() {
   }
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="pb-12">
+      {/* ============================================
+          🔥 Header Redesigned (Refresh & Add Item)
+          ============================================ */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-charcoal">Menu Manager</h1>
           <p className="mt-1 text-sm text-warm-gray">
-            {menuItems?.length ?? 0} item{(menuItems?.length ?? 0) !== 1 ? 's' : ''} on
-            your menu
+            Manage your dishes and availability ({menuItems?.length ?? 0} items)
           </p>
         </div>
 
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
+        <div className="flex items-center gap-3">
+          {/* 🔥 Refresh Button */}
+          <button
             onClick={() => refetch()}
             disabled={isRefetching}
+            className="group flex h-11 items-center justify-center gap-2 rounded-xl border border-charcoal/15 bg-white px-4 text-sm font-semibold text-charcoal transition-all hover:border-charcoal/30 hover:bg-charcoal/5 disabled:opacity-60"
           >
-            <RefreshCw className={cn('mr-2 h-4 w-4', isRefetching && 'animate-spin')} />
-            Refresh
-          </Button>
-          <Button size="sm" onClick={handleAddItem}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Item
-          </Button>
+            <RefreshCw className={cn('h-4 w-4 text-warm-gray transition-colors group-hover:text-charcoal', isRefetching && 'animate-spin')} />
+            <span className="hidden sm:block">Refresh</span>
+          </button>
+
+          {/* 🔥 Add Item Button */}
+          <button
+            onClick={handleAddItem}
+            className="group flex h-11 items-center justify-center gap-2 rounded-xl bg-linear-to-r from-tomato to-orange px-5 text-sm font-bold text-cream shadow-warm transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Plus className="h-4.5 w-4.5 transition-transform group-hover:rotate-90" />
+            <span>Add Item</span>
+          </button>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="mt-6 flex items-center gap-2 rounded-full border border-charcoal/10 bg-white px-4 py-2.5">
-        <Search className="h-4 w-4 text-warm-gray" />
+      {/* 🔥 Search Bar */}
+      <div className="mt-6 flex items-center gap-3 rounded-2xl border border-charcoal/10 bg-white px-4 py-3 shadow-sm focus-within:border-tomato focus-within:ring-4 focus-within:ring-tomato/10 transition-all">
+        <Search className="h-5 w-5 text-warm-gray" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search menu items..."
+          placeholder="Search your menu by item name or category..."
           className="w-full bg-transparent text-sm outline-none placeholder:text-warm-gray"
         />
       </div>
 
       {/* Menu Grid */}
       {filteredItems.length === 0 ? (
-        <Card className="mt-6 p-12 text-center">
-          <UtensilsCrossed className="mx-auto h-12 w-12 text-charcoal/20" />
-          <p className="mt-3 text-sm text-warm-gray">
-            {searchQuery ? 'No items match your search' : 'No menu items yet'}
+        <Card className="mt-8 p-16 text-center border-dashed border-2 border-charcoal/10 shadow-none">
+          <UtensilsCrossed className="mx-auto h-16 w-16 text-charcoal/20" />
+          <h3 className="mt-4 font-display text-lg font-bold text-charcoal">
+            {searchQuery ? 'No items found' : 'Your menu is empty'}
+          </h3>
+          <p className="mt-1 text-sm text-warm-gray">
+            {searchQuery ? 'Try adjusting your search terms' : 'Start by adding your first dish'}
           </p>
           {!searchQuery && (
-            <Button size="sm" onClick={handleAddItem} className="mt-4">
+            <Button onClick={handleAddItem} className="mt-6">
               <Plus className="mr-2 h-4 w-4" />
               Add First Item
             </Button>
           )}
         </Card>
       ) : (
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredItems.map((item) => (
             <MenuCard
               key={item.id || item._id}
@@ -299,142 +320,196 @@ export function RestaurantMenuManager() {
         </div>
       )}
 
-      {/* Add/Edit Modal */}
+      {/* ============================================
+          ADD/EDIT MODAL
+          ============================================ */}
       <Modal
         isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false)
-          setEditingItem(null)
-          setFormData(EMPTY_FORM)
-        }}
+        onClose={closeModal}
         title={editingItem ? 'Edit Menu Item' : 'Add New Menu Item'}
       >
-        <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
-          {/* Image Preview */}
-          {formData.image && (
-            <div className="overflow-hidden rounded-2xl">
-              <img
-                src={formData.image}
-                alt="Preview"
-                className="aspect-video w-full object-cover"
-                onError={(e) => {
-                  ;(e.target as HTMLImageElement).style.display = 'none'
-                }}
-              />
-            </div>
-          )}
+        <div className="max-h-[75vh] space-y-6 overflow-y-auto pr-2 pb-2 scrollbar-none">
 
-          {/* Name */}
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-charcoal">
-              Item Name *
-            </label>
-            <Input
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="e.g., Margherita Pizza"
+          {/* 🔥 Image Upload / URL Section */}
+          <div className="space-y-3 rounded-2xl border border-charcoal/10 bg-beige/30 p-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-bold text-charcoal">Item Image *</label>
+
+              <div className="flex rounded-full bg-white p-1 border border-charcoal/10 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setImageMode('url')}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all',
+                    imageMode === 'url' ? 'bg-tomato text-cream shadow-sm' : 'text-warm-gray hover:text-charcoal'
+                  )}
+                >
+                  <LinkIcon className="h-3 w-3" /> URL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageMode('upload')}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all',
+                    imageMode === 'upload' ? 'bg-tomato text-cream shadow-sm' : 'text-warm-gray hover:text-charcoal'
+                  )}
+                >
+                  <UploadCloud className="h-3 w-3" /> Upload
+                </button>
+              </div>
+            </div>
+
+            {/* Preview or Dropzone */}
+            {formData.image ? (
+              <div className="relative overflow-hidden rounded-xl bg-charcoal/5">
+                <img
+                  src={formData.image}
+                  alt="Preview"
+                  className="h-48 w-full object-cover"
+                  onError={(e) => {
+                    ; (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x200?text=Invalid+Image+URL'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, image: '' })}
+                  className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-charcoal/60 text-cream backdrop-blur-sm transition-colors hover:bg-red-500"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : imageMode === 'upload' ? (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="flex h-48 cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-charcoal/15 bg-white transition-colors hover:border-tomato hover:bg-tomato/5"
+              >
+                <div className="grid h-12 w-12 place-items-center rounded-full bg-beige">
+                  <UploadCloud className="h-6 w-6 text-warm-gray" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-semibold text-charcoal">Click to upload image</p>
+                  {/* 🔥 Max 10MB text updated */}
+                  <p className="text-xs text-warm-gray mt-1">JPG, PNG or WebP (max 10MB)</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex h-48 flex-col items-center justify-center gap-3 rounded-xl border border-charcoal/10 bg-white">
+                <LinkIcon className="h-8 w-8 text-charcoal/20" />
+                <p className="text-xs text-warm-gray">Enter an image URL below to see preview</p>
+              </div>
+            )}
+
+            {/* URL Input */}
+            {imageMode === 'url' && (
+              <div className="flex items-center gap-2 rounded-xl border border-charcoal/15 bg-white px-3 py-2.5 focus-within:border-tomato focus-within:ring-2 focus-within:ring-tomato/10 transition-all">
+                <ImageIcon className="h-4 w-4 shrink-0 text-warm-gray" />
+                <input
+                  type="url"
+                  value={formData.image}
+                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                  placeholder="https://images.unsplash.com/..."
+                  className="w-full bg-transparent text-sm outline-none placeholder:text-warm-gray"
+                />
+              </div>
+            )}
+
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept="image/jpeg, image/png, image/webp"
+              className="hidden"
             />
           </div>
 
-          {/* Image URL */}
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-charcoal">
-              Image URL *
-            </label>
-            <div className="flex items-center gap-2 rounded-xl border border-charcoal/15 bg-white px-4 py-3">
-              <ImageIcon className="h-4 w-4 shrink-0 text-warm-gray" />
-              <input
-                type="url"
-                value={formData.image}
-                onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                placeholder="https://images.unsplash.com/..."
-                className="w-full bg-transparent text-sm outline-none placeholder:text-warm-gray"
-              />
-            </div>
-          </div>
-
-          {/* Category + Price */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Details Section */}
+          <div className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-charcoal">
-                Category *
-              </label>
-              <select
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full rounded-xl border border-charcoal/15 bg-white px-4 py-3 text-sm outline-none focus:border-tomato"
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-charcoal">
-                Price (₹) *
+              <label className="mb-1.5 block text-sm font-bold text-charcoal">
+                Item Name *
               </label>
               <Input
-                type="number"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                placeholder="299"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., Butter Chicken, Margherita Pizza"
+                className="bg-white"
               />
             </div>
-          </div>
 
-          {/* Description */}
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-charcoal">
-              Description *
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={3}
-              placeholder="Brief description of the dish..."
-              className="w-full rounded-xl border border-charcoal/15 bg-white px-4 py-3 text-sm outline-none focus:border-tomato"
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-bold text-charcoal">
+                  Category *
+                </label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full rounded-xl border border-charcoal/15 bg-white px-4 py-3 text-sm outline-none focus:border-tomato focus:ring-2 focus:ring-tomato/10 transition-all"
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-bold text-charcoal">
+                  Price *
+                </label>
+                <div className="flex items-center gap-2 rounded-xl border border-charcoal/15 bg-white px-3 py-2.5 focus-within:border-tomato focus-within:ring-2 focus-within:ring-tomato/10 transition-all">
+                  <IndianRupee className="h-4 w-4 text-warm-gray" />
+                  <input
+                    type="number"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    placeholder="299"
+                    className="w-full bg-transparent text-sm outline-none placeholder:text-warm-gray"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-bold text-charcoal">
+                Description *
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+                placeholder="Describe the dish, ingredients, etc..."
+                className="w-full rounded-xl border border-charcoal/15 bg-white px-4 py-3 text-sm outline-none focus:border-tomato focus:ring-2 focus:ring-tomato/10 transition-all resize-none"
+              />
+            </div>
           </div>
 
           {/* Toggles */}
-          <div className="flex gap-4">
-            <label className="flex flex-1 items-center gap-2 rounded-xl border border-charcoal/10 p-3">
+          <div className="flex gap-4 rounded-2xl border border-charcoal/10 bg-beige/30 p-4">
+            <label className="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-charcoal/10 bg-white p-3 shadow-sm hover:border-fresh-green/50 transition-colors">
               <input
                 type="checkbox"
                 checked={formData.isVeg}
                 onChange={(e) => setFormData({ ...formData, isVeg: e.target.checked })}
-                className="h-4 w-4 rounded accent-fresh-green"
+                className="h-5 w-5 rounded border-charcoal/20 accent-fresh-green"
               />
-              <span className="text-sm font-medium text-charcoal">Vegetarian</span>
+              <span className="text-sm font-semibold text-charcoal">Vegetarian</span>
             </label>
 
-            <label className="flex flex-1 items-center gap-2 rounded-xl border border-charcoal/10 p-3">
+            <label className="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-charcoal/10 bg-white p-3 shadow-sm hover:border-tomato/50 transition-colors">
               <input
                 type="checkbox"
                 checked={formData.isAvailable}
-                onChange={(e) =>
-                  setFormData({ ...formData, isAvailable: e.target.checked })
-                }
-                className="h-4 w-4 rounded accent-tomato"
+                onChange={(e) => setFormData({ ...formData, isAvailable: e.target.checked })}
+                className="h-5 w-5 rounded border-charcoal/20 accent-tomato"
               />
-              <span className="text-sm font-medium text-charcoal">Available</span>
+              <span className="text-sm font-semibold text-charcoal">Available</span>
             </label>
           </div>
 
-          {/* Buttons */}
+          {/* Actions */}
           <div className="flex gap-3 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsModalOpen(false)
-                setEditingItem(null)
-                setFormData(EMPTY_FORM)
-              }}
-              className="flex-1"
-            >
+            <Button variant="outline" onClick={closeModal} className="flex-1 bg-white">
               Cancel
             </Button>
             <Button
@@ -446,7 +521,7 @@ export function RestaurantMenuManager() {
                 ? 'Saving...'
                 : editingItem
                   ? 'Save Changes'
-                  : 'Add Item'}
+                  : 'Create Item'}
             </Button>
           </div>
         </div>
@@ -458,21 +533,26 @@ export function RestaurantMenuManager() {
         onClose={() => setDeleteConfirm(null)}
         title="Delete Menu Item"
       >
-        <p className="text-sm text-warm-gray">
-          Are you sure you want to delete <strong>{deleteConfirm?.name}</strong>? This
-          action cannot be undone.
-        </p>
-        <div className="mt-5 flex gap-3">
-          <Button variant="outline" onClick={() => setDeleteConfirm(null)} className="flex-1">
+        <div className="text-center py-4">
+          <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-red-50 mb-4">
+            <Trash2 className="h-8 w-8 text-red-500" />
+          </div>
+          <p className="text-charcoal font-medium">
+            Are you sure you want to delete <strong>{deleteConfirm?.name}</strong>?
+          </p>
+          <p className="text-sm text-warm-gray mt-1">This action cannot be undone.</p>
+        </div>
+        <div className="mt-6 flex gap-3">
+          <Button variant="outline" onClick={() => setDeleteConfirm(null)} className="flex-1 bg-white">
             Cancel
           </Button>
           <Button
             variant="danger"
             onClick={handleDelete}
             disabled={deleteMutation.isPending}
-            className="flex-1"
+            className="flex-1 shadow-lg shadow-red-500/20"
           >
-            {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+            {deleteMutation.isPending ? 'Deleting...' : 'Yes, Delete'}
           </Button>
         </div>
       </Modal>
@@ -500,15 +580,15 @@ function MenuCard({
   const isAvailable = item.isAvailable ?? true
 
   return (
-    <Card className="group overflow-hidden p-0">
+    <Card className="group flex flex-col overflow-hidden p-0 transition-all duration-300 hover:shadow-warm hover:-translate-y-1">
       {/* Image */}
-      <div className="relative aspect-video overflow-hidden bg-beige">
+      <div className="relative aspect-4/3 w-full overflow-hidden bg-beige">
         {item.image ? (
           <img
             src={item.image}
             alt={item.name}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
         ) : (
           <div className="grid h-full place-items-center">
@@ -519,81 +599,86 @@ function MenuCard({
         {/* Veg indicator */}
         <span
           className={cn(
-            'absolute left-3 top-3 grid h-5 w-5 place-items-center rounded border-2 bg-white',
+            'absolute left-3 top-3 grid h-6 w-6 place-items-center rounded border-2 bg-white shadow-sm',
             item.isVeg ? 'border-fresh-green' : 'border-tomato'
           )}
         >
           <span
             className={cn(
-              'h-2 w-2 rounded-full',
+              'h-2.5 w-2.5 rounded-full',
               item.isVeg ? 'bg-fresh-green' : 'bg-tomato'
             )}
           />
         </span>
 
-        {/* Availability badge */}
+        {/* Unavailable Overlay */}
         {!isAvailable && (
-          <span className="absolute right-3 top-3 rounded-full bg-red-500 px-2.5 py-1 text-[10px] font-bold uppercase text-white">
-            Unavailable
-          </span>
+          <div className="absolute inset-0 flex items-center justify-center bg-charcoal/60 backdrop-blur-sm">
+            <span className="rounded-full bg-red-500 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-white shadow-lg">
+              Unavailable
+            </span>
+          </div>
         )}
       </div>
 
       {/* Content */}
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-display text-base font-bold text-charcoal line-clamp-1">
+      <div className="flex flex-1 flex-col p-5">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="font-display text-lg font-bold text-charcoal leading-tight line-clamp-1">
             {item.name}
           </h3>
-          <span className="shrink-0 font-display text-base font-bold text-tomato">
+          <span className="shrink-0 font-display text-lg font-bold text-tomato">
             ₹{item.price}
           </span>
         </div>
 
-        <p className="mt-1 line-clamp-2 text-xs text-warm-gray">{item.description}</p>
+        <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-warm-gray">
+          {item.description}
+        </p>
 
-        <div className="mt-2 flex items-center gap-2">
-          {item.course && <Badge variant="neutral">{item.course}</Badge>}
-          <Badge variant={item.isVeg ? 'success' : 'danger'}>
-            {item.isVeg ? 'Veg' : 'Non-Veg'}
-          </Badge>
+        <div className="mt-3 flex items-center gap-2">
+          {item.course && (
+            <Badge variant="neutral" className="bg-charcoal/5 text-charcoal/70 border-0">
+              {item.course}
+            </Badge>
+          )}
         </div>
 
-        {/* Actions */}
-        <div className="mt-3 flex items-center justify-between gap-2 border-t border-charcoal/10 pt-3">
-          {/* Availability toggle */}
+        {/* Actions Footer */}
+        <div className="mt-auto pt-4 flex items-center justify-between border-t border-charcoal/5">
+          {/* Toggle */}
           <button
             onClick={onToggle}
             disabled={isToggling}
             className={cn(
-              'relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50',
+              'group/toggle relative flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-50',
               isAvailable ? 'bg-fresh-green' : 'bg-charcoal/20'
             )}
-            aria-label={isAvailable ? 'Disable item' : 'Enable item'}
+            aria-label={isAvailable ? 'Mark unavailable' : 'Mark available'}
           >
             <span
               className={cn(
-                'absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform',
-                isAvailable ? 'translate-x-5' : ''
+                'absolute left-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300',
+                isAvailable ? 'translate-x-5' : 'translate-x-0'
               )}
             />
           </button>
 
           {/* Edit + Delete */}
-          <div className="flex gap-1">
+          <div className="flex gap-1.5">
             <button
               onClick={onEdit}
-              className="grid h-8 w-8 place-items-center rounded-full text-charcoal/60 transition-colors hover:bg-beige hover:text-tomato"
-              aria-label="Edit item"
+              className="grid h-8 w-8 place-items-center rounded-lg bg-charcoal/5 text-charcoal/60 transition-colors hover:bg-tomato/10 hover:text-tomato"
+              title="Edit item"
             >
-              <Pencil className="h-3.5 w-3.5" />
+              <Pencil className="h-4 w-4" />
             </button>
             <button
               onClick={onDelete}
-              className="grid h-8 w-8 place-items-center rounded-full text-charcoal/60 transition-colors hover:bg-red-50 hover:text-red-600"
-              aria-label="Delete item"
+              className="grid h-8 w-8 place-items-center rounded-lg bg-charcoal/5 text-charcoal/60 transition-colors hover:bg-red-50 hover:text-red-600"
+              title="Delete item"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-4 w-4" />
             </button>
           </div>
         </div>

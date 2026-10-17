@@ -14,6 +14,8 @@ import {
   markOrderDelivered,
   toggleDeliveryStatus,
   fetchEarnings,
+  updateProfile,     // <-- Naya function import kiya
+  updateVehicle,     // <-- Naya function import kiya
   type DeliveryStats,
   type AvailableOrder,
   type DeliveriesResponse,
@@ -26,10 +28,6 @@ import type { RestaurantOrder } from './restaurantClient'
 // Dashboard
 // ============================================
 
-/**
- * Delivery partner dashboard stats.
- * Auto-refetch every 20s as fallback (socket handles realtime).
- */
 export function useDeliveryStats() {
   return useQuery<DeliveryStats>({
     queryKey: ['delivery', 'stats'],
@@ -43,10 +41,6 @@ export function useDeliveryStats() {
 // Available Orders Pool
 // ============================================
 
-/**
- * Ready orders waiting for pickup.
- * Auto-refetch every 15s — new orders may appear anytime.
- */
 export function useAvailableOrders() {
   return useQuery<AvailableOrder[]>({
     queryKey: ['delivery', 'available-orders'],
@@ -89,7 +83,6 @@ export function useAcceptDeliveryOrder() {
   return useMutation({
     mutationFn: (orderId: string) => acceptDeliveryOrder(orderId),
     onSuccess: () => {
-      // Refresh pool + my deliveries + stats
       queryClient.invalidateQueries({ queryKey: ['delivery', 'available-orders'] })
       queryClient.invalidateQueries({ queryKey: ['delivery', 'my-deliveries'] })
       queryClient.invalidateQueries({ queryKey: ['delivery', 'stats'] })
@@ -139,5 +132,31 @@ export function useEarnings() {
   return useQuery<EarningsSummary>({
     queryKey: ['delivery', 'earnings'],
     queryFn: fetchEarnings,
+  })
+}
+
+// ============================================
+// Profile & Vehicle Updates (NEW)
+// ============================================
+
+export function useUpdateProfile() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { name: string; phone: string; email: string }) => updateProfile(data),
+    onSuccess: () => {
+      // 'delivery', 'stats' key invalidate karein taaki dashboard par naya naam dikhe
+      queryClient.invalidateQueries({ queryKey: ['delivery', 'stats'] })
+    },
+  })
+}
+
+export function useUpdateVehicle() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { vehicleNumber: string; vehicleModel: string; vehicleType: string }) => updateVehicle(data),
+    onSuccess: () => {
+      // 'delivery', 'stats' key invalidate karein taaki dashboard par nayi gaadi dikhe
+      queryClient.invalidateQueries({ queryKey: ['delivery', 'stats'] })
+    },
   })
 }

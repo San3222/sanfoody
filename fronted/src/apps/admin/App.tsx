@@ -44,6 +44,10 @@ const OrderDetail = lazy(() =>
     import('@/apps/admin/pages/OrderDetail').then((m) => ({ default: m.OrderDetail }))
 )
 
+const DeliveryPartners = lazy(() =>
+    import('@/apps/admin/pages/DeliveryPartners').then((m) => ({ default: m.AdminDeliveryPartners }))
+)
+
 export function AdminApp() {
     return (
         <ErrorBoundary>
@@ -70,6 +74,14 @@ export function AdminApp() {
                         element={
                             <Suspense fallback={<PageSkeleton />}>
                                 <AdminRestaurantApprovals />
+                            </Suspense>
+                        }
+                    />
+                    <Route
+                        path="delivery-partners"
+                        element={
+                            <Suspense fallback={<PageSkeleton />}>
+                                <DeliveryPartners />
                             </Suspense>
                         }
                     />

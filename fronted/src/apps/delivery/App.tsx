@@ -2,15 +2,16 @@
 
 import { Suspense, lazy } from 'react'
 import { Route, Routes } from 'react-router-dom'
-import { DeliveryLayout  } from '@/apps/delivery/layouts/DeliveryLayouts'
+import { DeliveryLayout } from '@/apps/delivery/layouts/DeliveryLayouts'
 import { RequireAuth } from '@/components/shared/RequireAuth'
 import { PageSkeleton } from '@/components/shared/Skeleton'
 
 // Route-level code splitting
-const DeliveryDashbaord = lazy(() => import('@/apps/delivery/pages/Dashboard').then((m) => ({ default: m.DeliveryDashboard  })))
-const AvailableOrders = lazy(() => import('@/apps/delivery/pages/AvailableOrders').then((m) => ({ default: m.AvailableOrders  })))
-const MyDeliveries  = lazy(() => import('@/apps/delivery/pages/MyDeliveries').then((m) => ({ default: m.MyDeliveries  })))
-const Earnings  = lazy(() => import('@/apps/delivery/pages/Earnings').then((m) => ({ default: m.DeliveryEarnings  })))
+const DeliveryDashbaord = lazy(() => import('@/apps/delivery/pages/Dashboard').then((m) => ({ default: m.DeliveryDashboard })))
+const AvailableOrders = lazy(() => import('@/apps/delivery/pages/AvailableOrders').then((m) => ({ default: m.AvailableOrders })))
+const MyDeliveries = lazy(() => import('@/apps/delivery/pages/MyDeliveries').then((m) => ({ default: m.MyDeliveries })))
+const Earnings = lazy(() => import('@/apps/delivery/pages/Earnings').then((m) => ({ default: m.DeliveryEarnings })))
+const Settings = lazy(() => import('@/apps/delivery/pages/Settings').then((m) => ({ default: m.DeliverySettings })))
 
 
 
@@ -21,7 +22,7 @@ export function DeliveryApp() {
   return (
     <ErrorBoundary>
       <Routes>
-        <Route element={<DeliveryLayout  />}>
+        <Route element={<DeliveryLayout />}>
           <Route
             path="/available-orders"
             element={
@@ -38,7 +39,7 @@ export function DeliveryApp() {
               </Suspense>
             }
           />
-           <Route
+          <Route
             path="dashboard"
             element={
               <Suspense fallback={<PageSkeleton />}>
@@ -51,6 +52,14 @@ export function DeliveryApp() {
             element={
               <Suspense fallback={<PageSkeleton />}>
                 <Earnings />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <Suspense fallback={<PageSkeleton />}>
+                <Settings />
               </Suspense>
             }
           />

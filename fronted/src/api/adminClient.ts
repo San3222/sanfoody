@@ -3,6 +3,8 @@
 // Admin Panel API Client
 // ============================================
 
+import type { ReactNode } from "react"
+
 const API_BASE_URL = '/api/v1'
 
 async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
@@ -41,6 +43,7 @@ async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> 
 // ============================================
 
 export interface AdminUser {
+    blockedAt: any
     _id: string
     name: string
     email: string
@@ -219,6 +222,9 @@ export interface PayoutsResponse {
     stats: Record<string, { count: number; amount: number }>
 }
 
+
+
+
 // ============================================
 // Dashboard
 // ============================================
@@ -369,4 +375,68 @@ export async function rejectUser(userId: string, reason?: string) {
         method: "PATCH",
         body: JSON.stringify({ reason }),
     });
+}
+
+
+
+
+// Types add karein
+export interface AdminDeliveryPartner {
+    _id: string
+    name: string
+    email: string
+    phone: string
+    status: 'online' | 'offline' | 'busy'
+    isActive: boolean
+    rating: number
+    totalDeliveries: number
+    acceptanceRate: number
+    lastActive: string // Date string
+    createdAt: string
+    deliveryDetails?: {
+        vehicleType: string
+        vehicleNumber: string
+        verificationStatus: 'pending' | 'verified' | 'rejected'
+        aadhaarNumber?: string
+        licenseNumber?: string
+    }
+}
+
+export interface DeliveryPartnersResponse {
+    partners: AdminDeliveryPartner[]
+    total: number
+    page: number
+    totalPages: number
+    stats: {
+        total: number
+        online: number
+        pendingApproval: number
+        inactive: number
+    }
+}
+
+// API Functions add karein
+export async function fetchDeliveryPartners(
+    search?: string,
+    status?: string,
+    page = 1,
+    limit = 20
+): Promise<DeliveryPartnersResponse> {
+    const params = new URLSearchParams()
+    if (search) params.append('search', search)
+    if (status && status !== 'all') params.append('status', status)
+    params.append('page', String(page))
+    params.append('limit', String(limit))
+    return apiFetch(`/admin/delivery-partners?${params.toString()}`)
+}
+
+export async function verifyDeliveryPartner(id: string): Promise<AdminDeliveryPartner> {
+    return apiFetch(`/admin/delivery-partners/${id}/verify`, { method: 'PATCH' })
+}
+
+export async function rejectDeliveryPartner(id: string, reason: string): Promise<AdminDeliveryPartner> {
+    return apiFetch(`/admin/delivery-partners/${id}/reject`, { 
+        method: 'PATCH',
+        body: JSON.stringify({ reason })
+    })
 }

@@ -13,11 +13,32 @@ import { earnPoints } from "./loyalty.controller.js";
 import { sendDeliveryAssignedEmail, sendOrderDeliveredEmail } from "../utils/email.js";
 
 // ============================================
+// HELPER: Check if partner is verified
+// ============================================
+const checkPartnerVerified = async (userId: string) => {
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    // 🔥 Verification Check
+    const isVerified = user.deliveryDetails?.verificationStatus === 'verified';
+
+    if (!isVerified) {
+        throw new ApiError(403, "Your account is pending admin approval. You cannot perform this action yet.");
+    }
+    return user;
+};
+
+// ============================================
 // GET /delivery/orders/available
 // Ready orders waiting for pickup (unassigned)
 // ============================================
 export const getAvailableOrders = asyncHandler(
     async (req: AuthRequest, reply: FastifyReply) => {
+        // 🔥 Check Verification First
+        await checkPartnerVerified(req.user._id);
+
         const orders = await Order.find({
             status: "ready",
             deliveryPartner: null,
@@ -123,6 +144,9 @@ export const getDeliveryById = asyncHandler(
 // ============================================
 export const acceptDeliveryOrder = asyncHandler(
     async (req: AuthRequest, reply: FastifyReply) => {
+        // 🔥 Check Verification First
+        await checkPartnerVerified(req.user._id);
+
         const { id } = req.params as any;
 
         const order = await Order.findOne({ orderId: id });
@@ -165,7 +189,6 @@ export const acceptDeliveryOrder = asyncHandler(
             });
         }
 
-
         // 🔥 Email: Delivery Partner Assigned
         try {
             const customer = await User.findById(order.user);
@@ -181,7 +204,6 @@ export const acceptDeliveryOrder = asyncHandler(
         } catch (err) {
             console.error("Failed to fetch customer for email:", err);
         }
-
 
         // 🔥 Notify customer via push
         try {
@@ -295,12 +317,10 @@ export const markDelivered = asyncHandler(
         await order.save();
 
         // Update partner stats
-        // 🔥 Calculate total earnings (delivery + tip)
         const deliveryEarnings = order.deliveryEarnings || Math.round(order.deliveryFee * 0.8);
         const tipAmount = order.tipAmount || 0;
         const totalEarnings = deliveryEarnings + tipAmount;
 
-        // Update partner stats
         await User.findByIdAndUpdate(req.user._id, {
             $inc: {
                 currentLoad: -1,
@@ -329,7 +349,6 @@ export const markDelivered = asyncHandler(
 
         console.log(`💰 ₹${totalEarnings} credited to wallet (delivery: ₹${deliveryEarnings}, tip: ₹${tipAmount})`);
 
-
         // 🔥 Email: Order Delivered + Rating CTA
         try {
             const customer = await User.findById(order.user);
@@ -348,9 +367,6 @@ export const markDelivered = asyncHandler(
             console.error("Failed to send delivered email:", err);
         }
 
-
-
-
         // 🔥 Award loyalty points to CUSTOMER
         try {
             const pointsEarned = await earnPoints(
@@ -362,7 +378,6 @@ export const markDelivered = asyncHandler(
         } catch (err) {
             console.error("Loyalty points award failed:", err);
         }
-
 
         // 🔥 Socket.io — notify restaurant + customer
         const io = (req.server as any).io;
@@ -417,20 +432,15 @@ export const getDeliveryStats = asyncHandler(
             todayEarningsAgg,
             user,
         ] = await Promise.all([
-            // Active deliveries (assigned to me, not yet delivered)
             Order.countDocuments({
                 deliveryPartner: userId,
                 status: { $in: ["ready", "out-for-delivery"] },
             }),
-
-            // Today's completed deliveries
             Order.countDocuments({
                 deliveryPartner: userId,
                 status: "delivered",
                 deliveredAt: { $gte: todayStart, $lte: todayEnd },
             }),
-
-            // Today's earnings
             Order.aggregate([
                 {
                     $match: {
@@ -441,10 +451,8 @@ export const getDeliveryStats = asyncHandler(
                 },
                 { $group: { _id: null, total: { $sum: "$deliveryEarnings" } } },
             ]),
-
-            // User profile
             User.findById(userId).select(
-                "name email phone status totalDeliveries totalEarnings rating vehicleType vehicleNumber"
+                "name email phone status totalDeliveries totalEarnings rating vehicleType vehicleNumber deliveryDetails isVerified"
             ),
         ]);
 
@@ -472,6 +480,20 @@ export const getDeliveryStats = asyncHandler(
 // ============================================
 export const toggleOnlineStatus = asyncHandler(
     async (req: AuthRequest, reply: FastifyReply) => {
+        // 🔥 SECURITY CHECK: Only verified partners can toggle status
+        const userDoc = (await User.findById(req.user._id)) as any;
+
+        const isVerified =
+            userDoc?.deliveryDetails?.verificationStatus === "verified" ||
+            userDoc?.isVerified === true;
+
+        if (!isVerified) {
+            throw new ApiError(
+                403,
+                "Your account is pending admin approval. You cannot go online."
+            );
+        }
+
         const { status } = req.body as any;
 
         if (!status || !["online", "offline", "busy"].includes(status)) {

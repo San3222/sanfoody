@@ -53,6 +53,7 @@ export interface DeliveryPartner {
   rating: number
   vehicleType?: 'bike' | 'scooter' | 'cycle' | 'car'
   vehicleNumber?: string
+  vehicleModel?: string // Added model
 }
 
 export interface DeliveryStats {
@@ -150,9 +151,11 @@ export async function markOrderDelivered(
 // Status
 // ============================================
 
+// src/api/deliveryClient.ts (Ye function update karein)
 export async function toggleDeliveryStatus(
   status: 'online' | 'offline' | 'busy'
 ): Promise<DeliveryPartner> {
+  // Backend par hi check hoga, lekin frontend se bhi ek extra header bhej sakte hain
   return apiFetch('/delivery/status', {
     method: 'POST',
     body: JSON.stringify({ status }),
@@ -184,4 +187,22 @@ export async function getDeliveryLocation(orderId: string): Promise<any> {
 
 export async function fetchEarnings(): Promise<EarningsSummary> {
   return apiFetch('/delivery/earnings')
+}
+
+// ============================================
+// Profile & Vehicle Updates (NEW)
+// ============================================
+
+export async function updateProfile(data: { name: string; phone: string; email: string }): Promise<DeliveryPartner> {
+  return apiFetch('/delivery/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function updateVehicle(data: { vehicleNumber: string; vehicleModel: string; vehicleType: string }): Promise<DeliveryPartner> {
+  return apiFetch('/delivery/vehicle', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
 }

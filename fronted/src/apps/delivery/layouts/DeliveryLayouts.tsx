@@ -10,6 +10,8 @@ import {
   Wifi,
   WifiOff,
   Power,
+  Settings,
+  ShieldAlert,
 } from 'lucide-react'
 import { useAuth } from '@/context/useAuth'
 import { useDeliverySocket } from '@/hooks/useDeliverySocket'
@@ -38,6 +40,7 @@ const navItems = [
   { to: '/delivery/available-orders', label: 'Available Orders', icon: Package },
   { to: '/delivery/my-deliveries', label: 'My Deliveries', icon: Bike },
   { to: '/delivery/earnings', label: 'Earnings', icon: DollarSign },
+  { to: '/delivery/settings', label: 'Settings', icon: Settings },
 ]
 
 export function DeliveryLayout() {
@@ -52,8 +55,13 @@ export function DeliveryLayout() {
   const { data: stats } = useDeliveryStats()
   const toggleStatus = useToggleDeliveryStatus()
 
-  const partnerStatus = stats?.partner?.status ?? 'offline'
-  const isOnline = partnerStatus === 'online'
+  // 🔥 VERIFICATION CHECK
+  const partner = stats?.partner
+  const verificationStatus = (partner as any)?.verificationStatus ?? (partner as any)?.deliveryDetails?.verificationStatus
+  const isVerified = verificationStatus === 'verified' || (partner as any)?.isVerified === true
+
+  const partnerStatus = partner?.status ?? 'offline'
+  const isOnline = partnerStatus === 'online' && isVerified
   const activeCount = stats?.active ?? 0
 
   // 🔥 Unlock audio on first interaction
@@ -73,6 +81,12 @@ export function DeliveryLayout() {
   }
 
   const handleToggleOnline = () => {
+    // Agar verified nahi hai toh kuch mat karo
+    if (!isVerified) {
+      showToast('error', 'Your account is pending approval. You cannot go online.')
+      return
+    }
+
     const newStatus = isOnline ? 'offline' : 'online'
     toggleStatus.mutate(newStatus, {
       onSuccess: () => {
@@ -104,61 +118,58 @@ export function DeliveryLayout() {
               )}
               title={isConnected ? 'Live connection active' : 'Connection lost'}
             >
-              {isConnected ? (
-                <>
-                  <Wifi className="h-3 w-3" />
-                  LIVE
-                </>
-              ) : (
-                <>
-                  <WifiOff className="h-3 w-3" />
-                  OFF
-                </>
-              )}
+              {isConnected ? <><Wifi className="h-3 w-3" />LIVE</> : <><WifiOff className="h-3 w-3" />OFF</>}
             </div>
           </div>
 
-          {/* Online/Offline Toggle */}
+          {/* 🔥 Online/Offline Toggle (With Verification Check) */}
           <button
             onClick={handleToggleOnline}
-            disabled={toggleStatus.isPending}
+            disabled={toggleStatus.isPending || !isVerified}
             className={cn(
-              'mb-4 flex items-center justify-between gap-2 rounded-2xl p-3 transition-all disabled:opacity-60',
-              isOnline
-                ? 'bg-green-100 hover:bg-green-200'
-                : 'bg-charcoal/5 hover:bg-charcoal/10'
+              'mb-4 flex items-center justify-between gap-2 rounded-2xl p-3 transition-all text-left',
+              !isVerified
+                ? 'bg-amber-50 border border-amber-200 cursor-not-allowed'
+                : isOnline
+                  ? 'bg-green-100 hover:bg-green-200'
+                  : 'bg-charcoal/5 hover:bg-charcoal/10',
+              toggleStatus.isPending && 'opacity-60'
             )}
           >
             <div className="flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5">
-                {isOnline && (
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75" />
-                )}
-                <span
-                  className={cn(
-                    'relative inline-flex h-2.5 w-2.5 rounded-full',
-                    isOnline ? 'bg-green-500' : 'bg-charcoal/40'
+              {!isVerified ? (
+                <ShieldAlert className="h-5 w-5 text-amber-500 shrink-0" />
+              ) : (
+                <span className="relative flex h-2.5 w-2.5 shrink-0">
+                  {isOnline && (
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75" />
                   )}
-                />
-              </span>
-              <div className="text-left">
-                <p className="text-xs font-bold text-charcoal">
-                  {isOnline ? 'Online' : 'Offline'}
+                  <span className={cn('relative inline-flex h-2.5 w-2.5 rounded-full', isOnline ? 'bg-green-500' : 'bg-charcoal/40')} />
+                </span>
+              )}
+
+              <div>
+                <p className={cn("text-xs font-bold", !isVerified ? "text-amber-800" : "text-charcoal")}>
+                  {!isVerified ? 'Approval Pending' : isOnline ? 'Online' : 'Offline'}
                 </p>
-                <p className="text-[10px] text-warm-gray">
-                  {activeCount > 0 ? `${activeCount} active` : 'Ready to receive'}
+                <p className={cn("text-[10px]", !isVerified ? "text-amber-600/80" : "text-warm-gray")}>
+                  {!isVerified ? 'Cannot go online yet' : activeCount > 0 ? `${activeCount} active` : 'Ready to receive'}
                 </p>
               </div>
             </div>
+            
             <Power
-              className={cn('h-4 w-4', isOnline ? 'text-green-700' : 'text-charcoal/50')}
+              className={cn(
+                'h-4 w-4 shrink-0',
+                !isVerified ? 'text-amber-400' : isOnline ? 'text-green-700' : 'text-charcoal/50'
+              )}
             />
           </button>
 
           {/* Nav Links */}
           <nav className="flex-1 space-y-1">
             {navItems.map((item) => {
-              const showBadge = item.to.includes('available') && lastReadyOrder
+              const showBadge = item.to.includes('available') && lastReadyOrder && isVerified
               return (
                 <NavLink
                   key={item.to}

@@ -217,3 +217,16 @@ sanfoody/
 ├── .gitignore
 ├── package.json
 └── README.md
+
+
+
+
+🔑 Demo Accounts
+All demo accounts use the same password: password123
+
+Role	Email	Password
+👤 Customer	customer@demo.com	password123
+🏪 Restaurant Owner	owner@demo.com	password123
+🏪 Restaurant Owner 2	priya@demo.com	password123
+🚴 Delivery Partner	delivery@demo.com	password123
+👑 Admin	admin@demo.com	password123
